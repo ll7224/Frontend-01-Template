@@ -25,12 +25,21 @@ function converStringToNumber(string, x = 10) {
 
 function converNumberToString(number, x) {
     var integer = Math.floor(number)
-    var fraction = number - Math.floor(number)
+    var fraction = number - integer
     var string = ''
+    var decimal = ''
     while (integer > 0) {
         string = String(integer % x) + string;
         integer = Math.floor(integer / x)
     }
+    if (fraction > 0) {
+        string += '.'
+    }
+
+    while (fraction > 0) {
+        string += Math.floor(fraction * x)
+        fraction = fraction * x - Math.floor(fraction * x)
+    }
     return string;
 }
-console.log(converNumberToString(100, 10))
+console.log(converNumberToString(100.1, 10))
