@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global-G6</title>
+</head>
+
+<body>
+    <div id="globalNode"></div>
+    <script src="https://gw.alipayobjects.com/os/antv/pkg/_antv.g6-3.4.8/dist/g6.min.js"></script>
+    <script>
+        const width = document.getElementById('globalNode').scrollWidth || 1000
+        const height = document.getElementById('globalNode').scrollHeight || 1500
+        const graph = new G6.TreeGraph({
+            container: 'globalNode',
+            width,
+            height,
+            linkCenter: true,
+            modes: {
+                default: [{
+                        type: 'collapse-expand',
+                        onChange: function onChange(item, collapsed) {
+                            const data = item.get('model').data;
+                            data.collapsed = collapsed;
+                            return true;
+                        }
+                    },
+                    'drag-canvas',
+                    'zoom-canvas'
+                ]
+            },
+            defaultNode: {
+                size: 30,
+                style: {
+                    fill: '#C6E5FF',
+                    stroke: '#5B8FF9'
+                }
+            },
+            defaultEdge: {
+                style: {
+                    stroke: '#A3B1BF',
+                },
+            },
+            layout: {
+                type: 'dendrogram',
+                direction: 'LR',
+                nodeSep: 20,
+                rankSep: 600,
+                // nodeSize: 600,
+                radial: true,
+            },
+        });
+        graph.node(function (node) {
+            return {
+                label: node.id,
+            };
+        });
+
+        const data = {
+            id: 'Global',
+            children: []
+        }
+        var set = new Set();
+        var globalProperties = [
+            "eval",
+            "isFinite",
+            "isNaN",
+            "parseFloat",
+            "parseInt",
+            "decodeURI",
+            "decodeURIComponent",
+            "encodeURI",
+            "encodeURIComponent",
+            "Array",
+            "Date",
+            "RegExp",
+            "Promise",
+            "Proxy",
+            "Map",
+            "WeakMap",
+            "Set",
+            "WeakSet",
+            "Function",
+            "Boolean",
+            "String",
+            "Number",
+            "Symbol",
+            "Object",
+            "Error",
+            "EvalError",
+            "RangeError",
+            "ReferenceError",
+            "SyntaxError",
+            "TypeError",
+            "URIError",
+            "ArrayBuffer",
+            "SharedArrayBuffer",
+            "DataView",
+            "Float32Array",
+            "Float64Array",
+            "Int8Array",
+            "Int16Array",
+            "Int32Array",
+            "Uint8Array",
+            "Uint16Array",
+            "Uint32Array",
+            "Uint8ClampedArray",
+            "Atomics",
+            "JSON",
+            "Math",
+            "Reflect"
+        ]
+        var queue = []
+
+        for (var p of globalProperties) {
+            queue.push({
+                path: [p],
+                object: this[p]
+            })
+            // data.children.push({
+            //     id: p,
+            //     children: []
+            // })
+        }
+
+        let current;
+        while (queue.length) {
+            current = queue.shift()
+            // console.log(current.path.length)
+            if (set.has(current.object))
+                continue;
+            set.add(current.object);
+            //暴力破解法，后面修改方法
+            if (current.path.length === 1) {
+                data.children.push({
+                    id: current.path[0],
+                    children: []
+                })
+            }
+            if (current.path.length >= 2) {
+                for (let i = 0; i < data.children.length; i++) {
+                    if (current.path[0] === data.children[i].id) {
+                        data.children[i].children.push({
+                            id: current.path[1],
+                            children: []
+                        })
+                        if (data.children[i].children.length) {
+                            var hash = {}
+                            data.children[i].children = data.children[i].children.reduce((int, cur) => {
+                                hash[cur.id] ? '' : hash[cur.id] = true && int.push(cur)
+                                return int
+                            }, [])
+                        }
+                        if (data.children[i].children.length && current.path.length >= 3) {
+                            for (let j = 0; j < data.children[i].children.length; j++) {
+                                if (current.path[1] === data.children[i].children[j].id) {
+                                    data.children[i].children[j].children.push({
+                                        id: current.path[2],
+                                        children: []
+                                    })
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            // data.children.push({
+            //     id: '',
+            //     children: []
+            // })
+            for (let p of Object.getOwnPropertyNames(current.object)) {
+
+                var property = Object.getOwnPropertyDescriptor(current.object, p);
+
+                if (property.hasOwnProperty('value') &&
+                    ((property.value != null) && (typeof property.value == 'object') || (typeof property.value ==
+                        "function")) &&
+                    property.value instanceof Object) {
+                    queue.push({
+                        path: current.path.concat([p]),
+                        object: property.value
+                    })
+                }
+                if (property.hasOwnProperty("get") && (typeof property.get == 'function')) {
+                    // debugger;
+                    queue.push({
+                        path: current.path.concat([p]),
+                        object: property.get
+                    })
+                }
+                if (property.hasOwnProperty('set') && (typeof property.set == 'function')) {
+                    // debugger;
+                    queue.push({
+                        path: current.path.concat([p]),
+                        object: property.set
+                    })
+                }
+            }
+        }
+        console.log(data)
+        graph.data(data);
+        graph.render();
+        graph.fitView();
+    </script>
+</body>
+
+</html>
